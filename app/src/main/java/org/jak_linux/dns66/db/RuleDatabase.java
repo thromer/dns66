@@ -44,48 +44,48 @@ public class RuleDatabase {
     HashMap<String, Rule> nextRules = null;
 
     public static class Rule {
-	private final boolean blocked;
-	private final InetAddress address;
-	public static Rule createBlockRule() {
-	    return new Rule(true, null);
-	}
-	static Rule createMapRule(InetAddress address) {
-	    return new Rule(false, address);
-	}
-	private Rule(boolean blocked, InetAddress address) {
-	    this.blocked = blocked;
-	    this.address = address;
-	}
-	public boolean isBlocked() {
-	    if (address != null) {
-		throw new RuntimeException("Bad rule " + this);
-	    }
-	    return this.blocked;
-	}
-	public InetAddress getAddress() {
-	    if (this.blocked) {
-		throw new RuntimeException("Bad rule " + this);
-	    }
-	    return this.address;
-	}
-	@Override
-	public boolean equals(Object o) {
-	    if (this == o) return true;
-	    if (o == null || getClass() != o.getClass()) return false;
-	    Rule that = (Rule)o;
-	    if (this.blocked != that.blocked) return false;
-	    if (this.address == null) return that.address == null;
-	    return this.address.equals(that.address);
-	}
-	@Override
-	public int hashCode() {
-	    return (this.blocked ? 1231 : 1237) ^ 
-		(this.address == null ? 1307 : this.address.hashCode());
-	}
-	@Override
-	public String toString() {
-	    return "blocked: " + this.blocked + " address: " + String.valueOf(this.address);
-	}
+        private final boolean blocked;
+        private final InetAddress address;
+        public static Rule createBlockRule() {
+            return new Rule(true, null);
+        }
+        static Rule createMapRule(InetAddress address) {
+            return new Rule(false, address);
+        }
+        private Rule(boolean blocked, InetAddress address) {
+            this.blocked = blocked;
+            this.address = address;
+        }
+        public boolean isBlocked() {
+            if (this.blocked != (this.address == null)) {
+                throw new RuntimeException("Bad rule " + this);
+            }
+            return this.blocked;
+        }
+        public InetAddress getAddress() {
+            if (this.blocked != (this.address == null)) {
+                throw new RuntimeException("Bad rule " + this);
+            }
+            return this.address;
+        }
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Rule that = (Rule)o;
+            if (this.blocked != that.blocked) return false;
+            if (this.address == null) return that.address == null;
+            return this.address.equals(that.address);
+        }
+        @Override
+        public int hashCode() {
+            return (this.blocked ? 1231 : 1237) ^ 
+                (this.address == null ? 1307 : this.address.hashCode());
+        }
+        @Override
+        public String toString() {
+            return "blocked: " + this.blocked + " address: " + String.valueOf(this.address);
+        }
     }
 
     /**
@@ -123,34 +123,44 @@ public class RuleDatabase {
         if (endOfLine <= 0)
             return null;
 
-	line = line.substring(0, endOfLine);
-	Pattern LINE_PATTERN = Pattern.compile("^(\\S+)\\s+(\\S+)$");
-	Matcher matcher = LINE_PATTERN.matcher(line);
-	if (!matcher.matches()) {
-	    return null;
-	}
-	String addressString = matcher.group(1);
-	String host = matcher.group(2);
+        InetAddress address = null;
+        final String host;
+
+        line = line.substring(0, endOfLine);
+
+        Pattern LINE_PATTERN = Pattern.compile("^(\\S+)\\s+(\\S+)$");
+        Matcher matcher = LINE_PATTERN.matcher(line);
+        if (!matcher.matches()) {
+            // Plain host (not <address> <host>)
+            host = line;
+        } else {
+            String addressString = matcher.group(1);
+            host = matcher.group(2);
+            // TODO(thromer) 127.0.0.1 and ::1 are here for backward
+            // compatibility, but it seems wrong to (for example) reject
+            // lookups of localhost, which appears in
+            // https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+            if (!addressString.equals("127.0.0.1") && !addressString.equals("::1") && !addressString.equals("0.0.0.0")) {
+                try {
+                    address = InetAddress.getByName(addressString);
+                } catch (UnknownHostException e) {
+                    Log.e(TAG, "Unable to parse address " + addressString + " in line '" + line + "'", e);
+                    return null;
+                }
+            }
+        }           
 
         // Reject hosts containing a space
         for (int i = 0; i < host.length(); i++) {
             if (Character.isWhitespace(host.charAt(i)))
                 return null;
         }
+        if (host.equals("127.0.0.1") || host.equals("::1") || host.equals("0.0.0.0")) {
+            return null;
+        }
 
-	InetAddress address = null;
-	// TODO(thromer) 127.0.0.1 and ::1 are here for backward
-	// compatibility, but it seems wrong to (for example) reject
-	// lookups of localhost, which appears in
-	// https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
-	if (!addressString.equals("127.0.0.1") && addressString.equals("::1") && addressString.equals("0.0.0.0")) {
-	    try {
-		address = InetAddress.getByName(addressString);
-	    } catch (UnknownHostException e) {
-		Log.e(TAG, "Unable to parse address " + addressString + " in line '" + line + "'", e);
-	    }
-	}
-        return new SimpleImmutableEntry(address, host.toLowerCase(Locale.ENGLISH));
+        SimpleImmutableEntry pair = new SimpleImmutableEntry(address, host.toLowerCase(Locale.ENGLISH));
+        return pair;
     }
 
     /**
@@ -239,11 +249,11 @@ public class RuleDatabase {
     private void addHost(Configuration.Item item, InetAddress address, String host) {
         // Single host to block or map
         if (item.state == Configuration.Item.STATE_ALLOW) {
-	    if (address == null) {
-		nextRules.remove(host);
-	    } else {
-		nextRules.put(host, Rule.createMapRule(address));
-	    }
+            if (address == null) {
+                nextRules.remove(host);
+            } else {
+                nextRules.put(host, Rule.createMapRule(address));
+            }
         } else if (item.state == Configuration.Item.STATE_DENY) {
             nextRules.put(host, Rule.createBlockRule());
         }

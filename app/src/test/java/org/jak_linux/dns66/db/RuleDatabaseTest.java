@@ -19,8 +19,13 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.CharBuffer;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
+
+import static org.jak_linux.dns66.db.RuleDatabase.Rule;
 
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.*;
@@ -38,8 +43,6 @@ public class RuleDatabaseTest {
         //Mockito.when(Log.d(tag, msg, throwable)).thenReturn(0);
     }
 
-    // TODO(thromer) More tests
-
     @Test
     public void testGetInstance() throws Exception {
         RuleDatabase instance = RuleDatabase.getInstance();
@@ -49,32 +52,47 @@ public class RuleDatabaseTest {
         assertNull(instance.lookup("example.com"));
     }
 
+    private SimpleImmutableEntry makePair(String address, String host) {
+        try {
+            return new SimpleImmutableEntry(address == null ? null : InetAddress.getByName(address),
+                                            host);
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Test
     public void testParseLine() throws Exception {
         // Standard format lines
-        assertEquals("example.com", RuleDatabase.parseLine("0.0.0.0 example.com"));
-        assertEquals("example.com", RuleDatabase.parseLine("127.0.0.1 example.com"));
-        assertEquals("example.com", RuleDatabase.parseLine("::1 example.com"));
-        assertEquals("example.com", RuleDatabase.parseLine("example.com"));
+        assertEquals(makePair(null, "example.com"), RuleDatabase.parseLine("0.0.0.0 example.com"));
+        assertEquals(makePair(null, "example.com"), RuleDatabase.parseLine("127.0.0.1 example.com"));
+        assertEquals(makePair(null, "example.com"), RuleDatabase.parseLine("::1 example.com"));
+        assertEquals(makePair(null, "example.com"), RuleDatabase.parseLine("example.com"));
         // Comments
-        assertEquals("example.com", RuleDatabase.parseLine("example.com # foo"));
-        assertEquals("example.com", RuleDatabase.parseLine("0.0.0.0 example.com # foo"));
-        assertEquals("example.com", RuleDatabase.parseLine("::1 example.com # foo"));
+        assertEquals(makePair(null, "example.com"), RuleDatabase.parseLine("example.com # foo"));
+        assertEquals(makePair(null, "example.com"), RuleDatabase.parseLine("0.0.0.0 example.com # foo"));
+        assertEquals(makePair(null, "example.com"), RuleDatabase.parseLine("::1 example.com # foo"));
         // Check lower casing
-        assertEquals("example.com", RuleDatabase.parseLine("example.cOm"));
-        assertEquals("example.com", RuleDatabase.parseLine("127.0.0.1 example.cOm"));
-        assertEquals("example.com", RuleDatabase.parseLine("::1 example.cOm"));
+        assertEquals(makePair(null, "example.com"), RuleDatabase.parseLine("example.cOm"));
+        assertEquals(makePair(null, "example.com"), RuleDatabase.parseLine("127.0.0.1 example.cOm"));
+        assertEquals(makePair(null, "example.com"), RuleDatabase.parseLine("::1 example.cOm"));
         // Space trimming
         assertNull(RuleDatabase.parseLine(" 127.0.0.1 example.com"));
-        assertEquals("127.0.0.1.example.com", RuleDatabase.parseLine("127.0.0.1.example.com "));
-        assertEquals("::1.example.com", RuleDatabase.parseLine("::1.example.com "));
-        assertEquals("0.0.0.0.example.com", RuleDatabase.parseLine("0.0.0.0.example.com "));
-        assertEquals("example.com", RuleDatabase.parseLine("127.0.0.1 example.com "));
-        assertEquals("example.com", RuleDatabase.parseLine("127.0.0.1 example.com\t"));
-        assertEquals("example.com", RuleDatabase.parseLine("127.0.0.1   example.com "));
-        assertEquals("example.com", RuleDatabase.parseLine("127.0.0.1\t example.com "));
-        assertEquals("example.com", RuleDatabase.parseLine("::1\t example.com "));
-        // Space between values
+        assertEquals(makePair(null, "127.0.0.1.example.com"), RuleDatabase.parseLine("127.0.0.1.example.com "));
+        assertEquals(makePair(null, "::1.example.com"), RuleDatabase.parseLine("::1.example.com "));
+        assertEquals(makePair(null, "0.0.0.0.example.com"), RuleDatabase.parseLine("0.0.0.0.example.com "));
+        assertEquals(makePair(null, "example.com"), RuleDatabase.parseLine("127.0.0.1 example.com "));
+        assertEquals(makePair(null, "example.com"), RuleDatabase.parseLine("127.0.0.1 example.com\t"));
+        assertEquals(makePair(null, "example.com"), RuleDatabase.parseLine("127.0.0.1   example.com "));
+        assertEquals(makePair(null, "example.com"), RuleDatabase.parseLine("127.0.0.1\t example.com "));
+        assertEquals(makePair(null, "example.com"), RuleDatabase.parseLine("::1\t example.com "));
+        // Map to IPv4 host
+        assertEquals(makePair("1.2.3.4", "example.com"), RuleDatabase.parseLine("1.2.3.4 example.com "));
+        // Map to IPv6 host
+        assertEquals(makePair("2001:db8:3333:4444:5555:6666:7777:8888", "example.com"),
+                     RuleDatabase.parseLine("2001:db8:3333:4444:5555:6666:7777:8888 example.com "));
+        // Space between values / map to invalid host
+        assertNull(RuleDatabase.parseLine("non-address example.com"));
         // Invalid lines
         assertNull(RuleDatabase.parseLine("127.0.0.1 "));
         assertNull(RuleDatabase.parseLine("127.0.0.1"));
@@ -144,7 +162,41 @@ public class RuleDatabaseTest {
         // Allow again
         item.state = Configuration.Item.STATE_ALLOW;
         assertTrue(db.loadReader(item, new StringReader("invalid line\notherhost.com")));
-        assertNull(db.lookup("otherhost.com").isBlocked());
+        assertNull(db.lookup("otherhost.com"));
+
+        // Tests interleaving host mapping (ALLOW + an IP addreess)
+        // Map, allow, map, deny, map
+
+        // Map
+        item.state = Configuration.Item.STATE_ALLOW;
+        assertTrue(db.loadReader(item, new StringReader("1.2.3.4 example.com")));
+        Rule rule = db.lookup("example.com");
+        assertFalse(rule.isBlocked());
+        assertEquals(InetAddress.getByName("1.2.3.4"), rule.getAddress());
+
+        // Allow
+        item.state = Configuration.Item.STATE_ALLOW;
+        assertTrue(db.loadReader(item, new StringReader("0.0.0.0 example.com")));
+        assertNull(db.lookup("example.com"));
+        
+        // Map
+        item.state = Configuration.Item.STATE_ALLOW;
+        assertTrue(db.loadReader(item, new StringReader("1.2.3.4 example.com")));
+        rule = db.lookup("example.com");
+        assertFalse(rule.isBlocked());
+        assertEquals(InetAddress.getByName("1.2.3.4"), rule.getAddress());
+
+        // Deny
+        item.state = Configuration.Item.STATE_DENY;
+        assertTrue(db.loadReader(item, new StringReader("0.0.0.0 example.com")));
+        assertTrue(db.lookup("example.com").isBlocked());
+        
+        // Map
+        item.state = Configuration.Item.STATE_ALLOW;
+        assertTrue(db.loadReader(item, new StringReader("1.2.3.4 example.com")));
+        rule = db.lookup("example.com");
+        assertFalse(rule.isBlocked());
+        assertEquals(InetAddress.getByName("1.2.3.4"), rule.getAddress());
 
         // Reader can't read, we are aborting.
         Reader reader = Mockito.mock(Reader.class);

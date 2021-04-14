@@ -203,29 +203,29 @@ public class DnsPacketProxy {
             return;
         }
         String dnsQueryName = dnsMsg.getQuestion().getName().toString(true);
-	Rule rule = ruleDatabase.lookup(dnsQueryName.toLowerCase(Locale.ENGLISH));
-	if (rule == null) {
+        Rule rule = ruleDatabase.lookup(dnsQueryName.toLowerCase(Locale.ENGLISH));
+        if (rule == null) {
             Log.i(TAG, "handleDnsRequest: DNS Name " + dnsQueryName + " Allowed, sending to " + destAddr);
             DatagramPacket outPacket = new DatagramPacket(dnsRawData, 0, dnsRawData.length, destAddr, parsedUdp.getHeader().getDstPort().valueAsInt());
             eventLoop.forwardPacket(outPacket, parsedPacket);
         } else {
-	    if (rule.isBlocked()) {
-		Log.i(TAG, "handleDnsRequest: DNS Name " + dnsQueryName + " Blocked!");
-		dnsMsg.addRecord(NEGATIVE_CACHE_SOA_RECORD, Section.AUTHORITY);
-	    } else {
-		InetAddress address = rule.getAddress();
-		Log.i(TAG, "handleDnsRequest: DNS Name " + dnsQueryName + " mapped to " + address);
-		ARecord record = null;
-		try {
-		    record = new ARecord(new Name(dnsQueryName + '.'), Type.A, 59, address);
-		} catch (TextParseException e) {
-		    throw new RuntimeException(e);
-		}
-		dnsMsg.addRecord(record, Section.ANSWER);
-	    }
-	    dnsMsg.getHeader().setFlag(Flags.QR);
-	    dnsMsg.getHeader().setRcode(Rcode.NOERROR);
-	    handleDnsResponse(parsedPacket, dnsMsg.toWire());
+            if (rule.isBlocked()) {
+                Log.i(TAG, "handleDnsRequest: DNS Name " + dnsQueryName + " Blocked!");
+                dnsMsg.addRecord(NEGATIVE_CACHE_SOA_RECORD, Section.AUTHORITY);
+            } else {
+                InetAddress address = rule.getAddress();
+                Log.i(TAG, "handleDnsRequest: DNS Name " + dnsQueryName + " mapped to " + address);
+                ARecord record = null;
+                try {
+                    record = new ARecord(new Name(dnsQueryName + '.'), Type.A, 59, address);
+                } catch (TextParseException e) {
+                    throw new RuntimeException(e);
+                }
+                dnsMsg.addRecord(record, Section.ANSWER);
+            }
+            dnsMsg.getHeader().setFlag(Flags.QR);
+            dnsMsg.getHeader().setRcode(Rcode.NOERROR);
+            handleDnsResponse(parsedPacket, dnsMsg.toWire());
         }
     }
 
