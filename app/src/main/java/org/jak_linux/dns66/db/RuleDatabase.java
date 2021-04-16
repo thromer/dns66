@@ -241,7 +241,9 @@ public class RuleDatabase {
         // Single host to block
         if (item.state == Configuration.Item.STATE_ALLOW) {
             nextRules.remove(host);
+	    Log.d(TAG, "THROMER single host allowing " + host + "(title="+item.title+")");
         } else if (item.state == Configuration.Item.STATE_DENY) {
+	    Log.d(TAG, "THROMER single host blocking " + host + "(title="+item.title+")");
             nextRules.put(host, Rule.createBlockRule());
         }
     }
@@ -250,11 +252,14 @@ public class RuleDatabase {
         // Single host to block or map
         if (item.state == Configuration.Item.STATE_ALLOW) {
             if (address == null) {
+		Log.d(TAG, "THROMER file allowing " + host);
                 nextRules.remove(host);
             } else {
+	    Log.d(TAG, "THROMER file mapping " + host + " to " + address);
                 nextRules.put(host, Rule.createMapRule(address));
             }
         } else if (item.state == Configuration.Item.STATE_DENY) {
+	    Log.d(TAG, "THROMER file blocking " + host);
             nextRules.put(host, Rule.createBlockRule());
         }
     }

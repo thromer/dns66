@@ -152,20 +152,16 @@ public class DnsPacketProxy {
             return;
         }
 
-        UdpPacket parsedUdp;
+        UdpPacket parsedUdp = null;
         Packet udpPayload;
-
-        try {
-            parsedUdp = (UdpPacket) parsedPacket.getPayload();
-            udpPayload = parsedUdp.getPayload();
-        } catch (Exception e) {
-            try {
-                Log.i(TAG, "handleDnsRequest: Discarding unknown packet type " + parsedPacket.getHeader(), e);
-            } catch (Exception e1) {
-                Log.i(TAG, "handleDnsRequest: Discarding unknown packet type, could not log packet info", e1);
-            }
-            return;
-        }
+	
+	Packet payload = parsedPacket.getPayload();
+	if (!(payload instanceof UdpPacket)) {
+	    Log.i(TAG, "handleDnsRequest: Discarding unknown packet type class=" + payload.getClass() + " header=" + String.valueOf(parsedPacket.getHeader()));
+	    return;
+	}
+	parsedUdp = (UdpPacket)payload;
+	udpPayload = parsedUdp.getPayload();
 
         InetAddress destAddr = translateDestinationAdress(parsedPacket);
         if (destAddr == null)
