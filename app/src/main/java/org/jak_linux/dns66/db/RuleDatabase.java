@@ -105,11 +105,11 @@ public class RuleDatabase {
     /**
      * Parse a single line in a hosts file
      *
-     * @param line A line to parse of the form <IP address>,<hostname>
+     * @param line A line to parse of the form <IP address> <hostname>
      * @return A pair: IP Address (null if IP address is 0.0.0.0), hostname
      */
     @Nullable
-    static SimpleImmutableEntry<InetAddress, String> parseLine(String line) {
+    static SimpleImmutableEntry<InetAddress, String> parseLine(Configuration.Item item, String line) {
         int endOfLine = line.indexOf('#');
 
         if (endOfLine == -1)
@@ -123,40 +123,51 @@ public class RuleDatabase {
         if (endOfLine <= 0)
             return null;
 
-        InetAddress address = null;
+        final InetAddress address;
         final String host;
 
-        line = line.substring(0, endOfLine);
-
-        Pattern LINE_PATTERN = Pattern.compile("^(\\S+)\\s+(\\S+)$");
-        Matcher matcher = LINE_PATTERN.matcher(line);
-        if (!matcher.matches()) {
-            // Plain host (not <address> <host>)
-            host = line;
-        } else {
+        if (item.state == Configuration.Item.STATE_MAP) {
+            line = line.substring(0, endOfLine);
+            Pattern LINE_PATTERN = Pattern.compile("^(\\S+)\\s+(\\S+)$");
+            Matcher matcher = LINE_PATTERN.matcher(line);
+            if (!matcher.matches()) {
+                Log.e(TAG, "Ignoring bad map entry " + line);
+                return null;
+            }
             String addressString = matcher.group(1);
             host = matcher.group(2);
-            // TODO(thromer) 127.0.0.1 and ::1 are here for backward
-            // compatibility, but it seems wrong to (for example) reject
-            // lookups of localhost, which appears in
-            // https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
-            if (!addressString.equals("127.0.0.1") && !addressString.equals("::1") && !addressString.equals("0.0.0.0")) {
-                try {
-                    address = InetAddress.getByName(addressString);
-                } catch (UnknownHostException e) {
-                    Log.e(TAG, "Unable to parse address " + addressString + " in line '" + line + "'", e);
-                    return null;
-                }
-            }
-        }           
-
-        // Reject hosts containing a space
-        for (int i = 0; i < host.length(); i++) {
-            if (Character.isWhitespace(host.charAt(i)))
+            try {
+                address = InetAddress.getByName(addressString);
+            } catch (UnknownHostException e) {
+                Log.e(TAG, "Unable to parse address " + addressString + " in line '" + line + "'", e);
                 return null;
-        }
-        if (host.equals("127.0.0.1") || host.equals("::1") || host.equals("0.0.0.0")) {
-            return null;
+            }
+        } else {
+	    address = null;
+            // Find beginning of host field
+            int startOfHost = 0;
+
+            if (line.regionMatches(0, "127.0.0.1", 0, 9) && (endOfLine <= 9 || Character.isWhitespace(line.charAt(9))))
+                startOfHost += 10;
+            else if (line.regionMatches(0, "::1", 0, 3) && (endOfLine <= 3 || Character.isWhitespace(line.charAt(3))))
+                startOfHost += 4;
+            else if (line.regionMatches(0, "0.0.0.0", 0, 7) && (endOfLine <= 7 || Character.isWhitespace(line.charAt(7))))
+                startOfHost += 8;
+
+            // Trim of space at the beginning of the host.
+            while (startOfHost < endOfLine && Character.isWhitespace(line.charAt(startOfHost)))
+                startOfHost++;
+
+            // Reject lines containing a space
+            for (int i = startOfHost; i < endOfLine; i++) {
+                if (Character.isWhitespace(line.charAt(i)))
+                    return null;
+            }
+
+            if (startOfHost >= endOfLine)
+                return null;
+
+            host = line.substring(startOfHost, endOfLine);
         }
 
         SimpleImmutableEntry pair = new SimpleImmutableEntry(address, host.toLowerCase(Locale.ENGLISH));
@@ -223,7 +234,7 @@ public class RuleDatabase {
         }
 
         if (reader == null) {
-            addHost(item, item.location);
+            addLine(item, item.location);
             return;
         } else {
             loadReader(item, reader);
@@ -231,36 +242,35 @@ public class RuleDatabase {
     }
 
     /**
-     * Add a single host for an item.
-     * TODO(thromer): Update this code path to support mapping a host?
+     * Add a single line for an item.
      *
-     * @param item The item the host belongs to
-     * @param host The host
+     * @param item The item the line belongs to
+     * @param host The line (<host> or <ip host>)
      */
-    private void addHost(Configuration.Item item, String host) {
-        // Single host to block
+    private void addLine(Configuration.Item item, String line) {
         if (item.state == Configuration.Item.STATE_ALLOW) {
-            nextRules.remove(host);
-	    Log.d(TAG, "THROMER single host allowing " + host + "(title="+item.title+")");
+            nextRules.remove(line);
+            Log.d(TAG, "THROMER single line allowing " + line + "(title="+item.title+")");
         } else if (item.state == Configuration.Item.STATE_DENY) {
-	    Log.d(TAG, "THROMER single host blocking " + host + "(title="+item.title+")");
-            nextRules.put(host, Rule.createBlockRule());
+            Log.d(TAG, "THROMER single line blocking " + line + "(title="+item.title+")");
+            nextRules.put(line, Rule.createBlockRule());
+        } else if (item.state == Configuration.Item.STATE_MAP) {
+            SimpleImmutableEntry<InetAddress, String> addressHost = parseLine(item, line);
+            nextRules.put(addressHost.getValue(), Rule.createMapRule(addressHost.getKey()));
         }
     }
 
     private void addHost(Configuration.Item item, InetAddress address, String host) {
         // Single host to block or map
         if (item.state == Configuration.Item.STATE_ALLOW) {
-            if (address == null) {
-		Log.d(TAG, "THROMER file allowing " + host);
-                nextRules.remove(host);
-            } else {
-	    Log.d(TAG, "THROMER file mapping " + host + " to " + address);
-                nextRules.put(host, Rule.createMapRule(address));
-            }
+            Log.d(TAG, "THROMER file allowing " + host);
+            nextRules.remove(host);
         } else if (item.state == Configuration.Item.STATE_DENY) {
-	    Log.d(TAG, "THROMER file blocking " + host);
+            Log.d(TAG, "THROMER file blocking " + host);
             nextRules.put(host, Rule.createBlockRule());
+        } else if (item.state == Configuration.Item.STATE_MAP) {
+            Log.d(TAG, "THROMER file mapping " + host + " to " + address);
+            nextRules.put(host, Rule.createMapRule(address));
         }
     }
 
@@ -280,7 +290,7 @@ public class RuleDatabase {
                 while ((line = br.readLine()) != null) {
                     if (Thread.interrupted())
                         throw new InterruptedException("Interrupted");
-                    SimpleImmutableEntry<InetAddress, String> addressHost = parseLine(line);
+                    SimpleImmutableEntry<InetAddress, String> addressHost = parseLine(item, line);
                     if (addressHost != null) {
                         count += 1;
                         addHost(item, addressHost.getKey(), addressHost.getValue());
