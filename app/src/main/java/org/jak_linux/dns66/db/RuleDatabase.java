@@ -256,7 +256,10 @@ public class RuleDatabase {
             nextRules.put(line, Rule.createBlockRule());
         } else if (item.state == Configuration.Item.STATE_MAP) {
             SimpleImmutableEntry<InetAddress, String> addressHost = parseLine(item, line);
-            nextRules.put(addressHost.getValue(), Rule.createMapRule(addressHost.getKey()));
+	    String host = addressHost.getValue();
+	    InetAddress address = addressHost.getKey();
+            Log.d(TAG, "THROMER single line mapping " + host + " to " + address + " (title="+item.title+")");
+            nextRules.put(host, Rule.createMapRule(address));
         }
     }
 
