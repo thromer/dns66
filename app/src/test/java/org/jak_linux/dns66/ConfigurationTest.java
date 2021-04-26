@@ -5,12 +5,17 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.util.Log;
 import androidx.annotation.NonNull;
 
 import org.hamcrest.CoreMatchers;
+import org.junit.runner.RunWith;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -20,14 +25,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
+
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
 /**
  * Created by jak on 07/04/17.
  */
+@RunWith(PowerMockRunner.class)
+@PrepareForTest(Log.class)
 public class ConfigurationTest {
 
     @Rule
@@ -56,9 +67,14 @@ public class ConfigurationTest {
         assertFalse("http domain not downloadable", newItemForLocation("http.example.com").isDownloadable());
     }
 
+    @Before
+    public void setUp() {
+        mockStatic(Log.class);
+    }
+    
     @Test
     public void testResolve() throws Exception {
-        Configuration.Whitelist wl = new Configuration.Whitelist() {
+        Configuration.Allowlist wl = new Configuration.Allowlist() {
             @Override
             Intent newBrowserIntent() {
                 return mock(Intent.class);
@@ -90,7 +106,7 @@ public class ConfigurationTest {
         Set<String> onVpn = new HashSet<>();
         Set<String> notOnVpn = new HashSet<>();
 
-        wl.defaultMode = Configuration.Whitelist.DEFAULT_MODE_NOT_ON_VPN;
+        wl.defaultMode = Configuration.Allowlist.DEFAULT_MODE_NOT_ON_VPN;
         wl.resolve(pm, onVpn, notOnVpn);
 
         assertTrue(onVpn.contains(BuildConfig.APPLICATION_ID));
@@ -102,7 +118,7 @@ public class ConfigurationTest {
         // Default allow on vpn
         onVpn.clear();
         notOnVpn.clear();
-        wl.defaultMode = Configuration.Whitelist.DEFAULT_MODE_ON_VPN;
+        wl.defaultMode = Configuration.Allowlist.DEFAULT_MODE_ON_VPN;
         wl.resolve(pm, onVpn, notOnVpn);
 
         assertTrue(onVpn.contains(BuildConfig.APPLICATION_ID));
@@ -114,7 +130,7 @@ public class ConfigurationTest {
         // Default intelligent on vpn
         onVpn.clear();
         notOnVpn.clear();
-        wl.defaultMode = Configuration.Whitelist.DEFAULT_MODE_INTELLIGENT;
+        wl.defaultMode = Configuration.Allowlist.DEFAULT_MODE_INTELLIGENT;
         wl.resolve(pm, onVpn, notOnVpn);
 
         assertTrue(onVpn.contains(BuildConfig.APPLICATION_ID));
@@ -130,7 +146,7 @@ public class ConfigurationTest {
         wl.itemsOnVpn.clear();
         wl.items.add(BuildConfig.APPLICATION_ID);
         wl.items.add("system-browser");
-        wl.defaultMode = Configuration.Whitelist.DEFAULT_MODE_INTELLIGENT;
+        wl.defaultMode = Configuration.Allowlist.DEFAULT_MODE_INTELLIGENT;
         wl.resolve(pm, onVpn, notOnVpn);
         assertTrue(onVpn.contains(BuildConfig.APPLICATION_ID));
         assertTrue(notOnVpn.contains("system-browser"));
@@ -141,20 +157,22 @@ public class ConfigurationTest {
         wl.items.clear();
         wl.itemsOnVpn.clear();
         wl.itemsOnVpn.add("data-app");
-        wl.defaultMode = Configuration.Whitelist.DEFAULT_MODE_NOT_ON_VPN;
+        wl.defaultMode = Configuration.Allowlist.DEFAULT_MODE_NOT_ON_VPN;
         wl.resolve(pm, onVpn, notOnVpn);
         assertTrue(onVpn.contains("data-app"));
     }
 
     @Test
+    @PrepareForTest({Log.class})
     public void testRead() throws Exception {
+        when(Log.d(anyString(), anyString(), any(Throwable.class))).then(new CountingAnswer(null));
         Configuration config = Configuration.read(new StringReader("{}"));
 
         assertNotNull(config.hosts);
         assertNotNull(config.hosts.items);
-        assertNotNull(config.whitelist);
-        assertNotNull(config.whitelist.items);
-        assertNotNull(config.whitelist.itemsOnVpn);
+        assertNotNull(config.allowlist);
+        assertNotNull(config.allowlist.items);
+        assertNotNull(config.allowlist.itemsOnVpn);
         assertNotNull(config.dnsServers);
         assertNotNull(config.dnsServers.items);
         assertTrue(config.ipV6Support);
@@ -199,6 +217,23 @@ public class ConfigurationTest {
         applicationInfo.packageName = name;
         applicationInfo.flags = flags;
         return applicationInfo;
+    }
+
+    private class CountingAnswer implements Answer<Object> {
+
+        private final Object result;
+        private int numCalls;
+
+        CountingAnswer(Object result) {
+            this.result = result;
+            this.numCalls = 0;
+        }
+
+        @Override
+        public Object answer(InvocationOnMock invocation) throws Throwable {
+            numCalls++;
+            return result;
+        }
     }
 
 }
