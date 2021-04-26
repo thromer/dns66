@@ -231,9 +231,9 @@ public class RuleDatabaseItemUpdateRunnableTest {
         when(fos, "write", any(byte[].class), anyInt(), anyInt()).then(new Answer<Void>() {
             @Override
             public Void answer(InvocationOnMock invocation) throws Throwable {
-                byte[] buffer = invocation.getArgument(0, byte[].class);
-                int off = invocation.getArgument(1, Integer.class);
-                int len = invocation.getArgument(2, Integer.class);
+                byte[] buffer = invocation.getArgumentAt(0, byte[].class);
+                int off = invocation.getArgumentAt(1, Integer.class);
+                int len = invocation.getArgumentAt(2, Integer.class);
 
                 bos.write(buffer, off, len);
                 return null;

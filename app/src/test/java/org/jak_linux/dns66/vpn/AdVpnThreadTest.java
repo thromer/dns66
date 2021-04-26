@@ -60,14 +60,14 @@ public class AdVpnThreadTest {
         when(builder.addDnsServer(anyString())).thenAnswer(new Answer<VpnService.Builder>() {
             @Override
             public VpnService.Builder answer(InvocationOnMock invocation) throws Throwable {
-                serversAdded.add(InetAddress.getByName(invocation.getArgument(0, String.class)));
+                serversAdded.add(InetAddress.getByName(invocation.getArgumentAt(0, String.class)));
                 return builder;
             }
         });
         when(builder.addDnsServer(any(InetAddress.class))).thenAnswer(new Answer<VpnService.Builder>() {
             @Override
             public VpnService.Builder answer(InvocationOnMock invocation) throws Throwable {
-                serversAdded.add(invocation.getArgument(0, InetAddress.class));
+                serversAdded.add(invocation.getArgumentAt(0, InetAddress.class));
                 return builder;
             }
         });
@@ -80,14 +80,14 @@ public class AdVpnThreadTest {
         when(builder.addDisallowedApplication(anyString())).thenAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
-                disallowed.add(invocation.getArgument(0, String.class));
+                disallowed.add(invocation.getArgumentAt(0, String.class));
                 return null;
             }
         });
         when(builder.addAllowedApplication(anyString())).thenAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
-                allowed.add(invocation.getArgument(0, String.class));
+                allowed.add(invocation.getArgumentAt(0, String.class));
                 return null;
             }
         });

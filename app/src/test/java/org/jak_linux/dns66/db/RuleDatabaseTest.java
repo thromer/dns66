@@ -171,7 +171,7 @@ public class RuleDatabaseTest {
         // Map, allow, map, deny, map
 
         // Map
-        item.state = Configuration.Item.STATE_ALLOW;
+        item.state = Configuration.Item.STATE_MAP;
         assertTrue(db.loadReader(item, new StringReader("1.2.3.4 example.com")));
         Rule rule = db.lookup("example.com");
         assertFalse(rule.isBlocked());
@@ -183,7 +183,7 @@ public class RuleDatabaseTest {
         assertNull(db.lookup("example.com"));
         
         // Map
-        item.state = Configuration.Item.STATE_ALLOW;
+        item.state = Configuration.Item.STATE_MAP;
         assertTrue(db.loadReader(item, new StringReader("1.2.3.4 example.com")));
         rule = db.lookup("example.com");
         assertFalse(rule.isBlocked());
@@ -195,7 +195,7 @@ public class RuleDatabaseTest {
         assertTrue(db.lookup("example.com").isBlocked());
         
         // Map
-        item.state = Configuration.Item.STATE_ALLOW;
+        item.state = Configuration.Item.STATE_MAP;
         assertTrue(db.loadReader(item, new StringReader("1.2.3.4 example.com")));
         rule = db.lookup("example.com");
         assertFalse(rule.isBlocked());
