@@ -49,7 +49,7 @@ public class RuleDatabaseUpdateTaskTest {
 
             @Override
             public Uri answer(InvocationOnMock invocation) throws Throwable {
-                return newUri(invocation.getArgumentAt(0, String.class));
+                return newUri(invocation.getArgument(0, String.class));
             }
         });
 
@@ -78,7 +78,7 @@ public class RuleDatabaseUpdateTaskTest {
                 Iterator<UriPermission> iter = persistedPermissions.iterator();
                 while (iter.hasNext()) {
                     UriPermission perm = iter.next();
-                    if (perm.getUri() == invocation.getArgumentAt(0, Uri.class))
+                    if (perm.getUri() == invocation.getArgument(0, Uri.class))
                         iter.remove();
                 }
                 return null;

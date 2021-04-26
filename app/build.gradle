@@ -2,12 +2,13 @@ apply plugin: 'com.android.application'
 apply plugin: "com.hiya.jacoco-android"
 
 android {
-    compileSdkVersion 29
+    // TODO(thromer) does v30 lead to mockito problems?! probably not. newer version of mockito just fails more nicely
+    compileSdkVersion 30
     defaultConfig {
         applicationId "org.jak_linux.dns66"
         minSdkVersion 21
-        targetSdkVersion 29
-        versionCode 29
+        targetSdkVersion 30
+        versionCode 30
         versionName "0.6.8"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -24,7 +25,7 @@ android {
         sourceCompatibility = 1.8
         targetCompatibility = 1.8
     }
-    buildToolsVersion = '29.0.3'
+    buildToolsVersion = '30.0.3'
 }
 
 dependencies {
@@ -45,12 +46,12 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.8.6'
 
     testImplementation 'junit:junit:4.13.1'
-    testImplementation 'org.mockito:mockito-core:1.10.19'
-    testImplementation ('org.powermock:powermock-api-mockito:1.6.6') {
+    testImplementation 'org.mockito:mockito-core:2.28.2'
+    testImplementation ('org.powermock:powermock-api-mockito:1.7.4') {
         exclude module: 'hamcrest-core'
         exclude module: 'objenesis'
     }
-    testImplementation ('org.powermock:powermock-module-junit4:1.6.6') {
+    testImplementation ('org.powermock:powermock-module-junit4:2.0.9') {
         exclude module: 'hamcrest-core'
         exclude module: 'objenesis'
     }

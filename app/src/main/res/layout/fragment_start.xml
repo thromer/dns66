@@ -16,7 +16,7 @@
         android:layout_gravity="center_horizontal"
         android:layout_weight="1"
         android:longClickable="true"
-        android:tint="@color/colorStateImage"
+        app:tint="@color/colorStateImage"
         app:srcCompat="@drawable/ic_menu_start"/>
 
     <Button
