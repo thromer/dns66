@@ -2,13 +2,4 @@
 * add tests for changes to DnsPacketProxy
 * add copyright mumble for the arrow
 * hold back from commit [unless i can cherrypick jak's]
-** build.gradle.verbose
 ** TODO
-** app/src/main/res/drawable/ic_refresh.xml
-** app/src/main/res/layout/activity_item.xml
-** app/src/main/res/layout/activity_item_dns.xml
-** app/src/main/res/layout/button_extra_bar_toggle.xml
-** app/src/main/res/layout/fragment_start.xml
-** app/src/main/res/layout/view_item.xml
-** app/src/main/res/values-de/strings.xml
-** *incidental changes* to app/src/main/res/layout/extra_bar_hosts.xml
