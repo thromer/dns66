@@ -27,7 +27,6 @@ import org.jak_linux.dns66.R;
 
 public class DNSFragment extends Fragment implements FloatingActionButtonFragment {
 
-    private RecyclerView mRecyclerView;
     private ItemRecyclerViewAdapter mAdapter;
 
     public DNSFragment() {
@@ -38,7 +37,7 @@ public class DNSFragment extends Fragment implements FloatingActionButtonFragmen
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_dns, container, false);
 
-        mRecyclerView = (RecyclerView) rootView.findViewById(R.id.dns_entries);
+        RecyclerView mRecyclerView = (RecyclerView) rootView.findViewById(R.id.dns_entries);
 
         // use this setting to improve performance if you know that changes
         // in content do not change the layout size of the RecyclerView
@@ -83,9 +82,5 @@ public class DNSFragment extends Fragment implements FloatingActionButtonFragmen
                 });
             }
         });
-        // For D-Pad navigation
-        // TODO(thromer) may need to also setFocusable? setClickable?
-        mRecyclerView.setNextFocusDownId(fab.getId()); 
-        fab.setNextFocusUpId(mRecyclerView.getId());
-   }
+    }
 }

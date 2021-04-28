@@ -2,7 +2,6 @@ apply plugin: 'com.android.application'
 apply plugin: "com.hiya.jacoco-android"
 
 android {
-    // TODO(thromer) does v30 lead to mockito problems?! probably not. newer version of mockito just fails more nicely
     compileSdkVersion 29
     defaultConfig {
         applicationId "org.jak_linux.dns66"
@@ -56,4 +55,3 @@ dependencies {
         exclude module: 'objenesis'
     }
 }
-

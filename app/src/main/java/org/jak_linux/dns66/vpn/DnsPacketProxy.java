@@ -154,14 +154,14 @@ public class DnsPacketProxy {
 
         UdpPacket parsedUdp = null;
         Packet udpPayload;
-	
-	Packet payload = parsedPacket.getPayload();
-	if (!(payload instanceof UdpPacket)) {
-	    Log.i(TAG, "handleDnsRequest: Discarding unknown packet type class=" + payload.getClass() + " header=" + String.valueOf(parsedPacket.getHeader()));
-	    return;
-	}
-	parsedUdp = (UdpPacket)payload;
-	udpPayload = parsedUdp.getPayload();
+
+        Packet payload = parsedPacket.getPayload();
+        if (!(payload instanceof UdpPacket)) {
+            Log.i(TAG, "handleDnsRequest: Discarding unknown packet type class=" + payload.getClass() + " header=" + String.valueOf(parsedPacket.getHeader()));
+            return;
+        }
+        parsedUdp = (UdpPacket)payload;
+        udpPayload = parsedUdp.getPayload();
 
         InetAddress destAddr = translateDestinationAdress(parsedPacket);
         if (destAddr == null)

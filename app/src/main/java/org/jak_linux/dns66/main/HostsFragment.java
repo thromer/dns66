@@ -28,7 +28,6 @@ import org.jak_linux.dns66.db.RuleDatabaseUpdateJobService;
 
 public class HostsFragment extends Fragment implements FloatingActionButtonFragment {
 
-    private RecyclerView mRecyclerView;
     private ItemRecyclerViewAdapter mAdapter;
 
     public HostsFragment() {
@@ -39,7 +38,7 @@ public class HostsFragment extends Fragment implements FloatingActionButtonFragm
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_hosts, container, false);
 
-        mRecyclerView = (RecyclerView) rootView.findViewById(R.id.host_entries);
+        RecyclerView mRecyclerView = (RecyclerView) rootView.findViewById(R.id.host_entries);
 
         mRecyclerView.setHasFixedSize(true);
 
@@ -95,10 +94,6 @@ public class HostsFragment extends Fragment implements FloatingActionButtonFragm
                 });
             }
         });
-        // For D-Pad navigation
-        // TODO(thromer) may need to also setFocusable? setClickable?
-        mRecyclerView.setNextFocusDownId(fab.getId()); 
-        fab.setNextFocusUpId(mRecyclerView.getId());
     }
 
 }

@@ -79,7 +79,7 @@ public class RuleDatabase {
         }
         @Override
         public int hashCode() {
-            return (this.blocked ? 1231 : 1237) ^ 
+            return (this.blocked ? 1231 : 1237) ^
                 (this.address == null ? 1307 : this.address.hashCode());
         }
         @Override
@@ -143,7 +143,7 @@ public class RuleDatabase {
                 return null;
             }
         } else {
-	    address = null;
+            address = null;
             // Find beginning of host field
             int startOfHost = 0;
 
@@ -154,7 +154,7 @@ public class RuleDatabase {
             else if (line.regionMatches(0, "0.0.0.0", 0, 7) && (endOfLine <= 7 || Character.isWhitespace(line.charAt(7))))
                 startOfHost += 8;
 
-            // Trim of space at the beginning of the host.
+            // Trim off space at the beginning of the host.
             while (startOfHost < endOfLine && Character.isWhitespace(line.charAt(startOfHost)))
                 startOfHost++;
 
@@ -175,7 +175,7 @@ public class RuleDatabase {
     }
 
     /**
-     * Returns the Rule for the hostname 
+     * Returns the Rule for the hostname
      *
      * @param host A hostname
      * @return Rule for the host if it is blocked or mapped, otherwise null.
@@ -250,15 +250,12 @@ public class RuleDatabase {
     private void addLine(Configuration.Item item, String line) {
         if (item.state == Configuration.Item.STATE_ALLOW) {
             nextRules.remove(line);
-            Log.d(TAG, "THROMER single line allowing " + line + "(title="+item.title+")");
         } else if (item.state == Configuration.Item.STATE_DENY) {
-            Log.d(TAG, "THROMER single line blocking " + line + "(title="+item.title+")");
             nextRules.put(line, Rule.createBlockRule());
         } else if (item.state == Configuration.Item.STATE_MAP) {
             SimpleImmutableEntry<InetAddress, String> addressHost = parseLine(item, line);
-	    String host = addressHost.getValue();
-	    InetAddress address = addressHost.getKey();
-            Log.d(TAG, "THROMER single line mapping " + host + " to " + address + " (title="+item.title+")");
+            String host = addressHost.getValue();
+            InetAddress address = addressHost.getKey();
             nextRules.put(host, Rule.createMapRule(address));
         }
     }
@@ -266,13 +263,10 @@ public class RuleDatabase {
     private void addHost(Configuration.Item item, InetAddress address, String host) {
         // Single host to block or map
         if (item.state == Configuration.Item.STATE_ALLOW) {
-            Log.d(TAG, "THROMER file allowing " + host);
             nextRules.remove(host);
         } else if (item.state == Configuration.Item.STATE_DENY) {
-            Log.d(TAG, "THROMER file blocking " + host);
             nextRules.put(host, Rule.createBlockRule());
         } else if (item.state == Configuration.Item.STATE_MAP) {
-            Log.d(TAG, "THROMER file mapping " + host + " to " + address);
             nextRules.put(host, Rule.createMapRule(address));
         }
     }

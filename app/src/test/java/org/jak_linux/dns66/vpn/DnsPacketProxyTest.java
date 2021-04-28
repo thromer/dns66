@@ -65,7 +65,7 @@ public class DnsPacketProxyTest {
         item.location = "blocked.example.com";
         item.state = Configuration.Item.STATE_DENY;
 
-        Mockito.when(ruleDatabase.lookup("blocked.example.com")).thenReturn( // THROMER here?
+        Mockito.when(ruleDatabase.lookup("blocked.example.com")).thenReturn(
                 RuleDatabase.Rule.createBlockRule()
         );
 

@@ -26,29 +26,6 @@ allprojects {
     }
 }
 
-// task clean(type: Delete) {
-//     delete rootProject.buildDir
-// }
-
-// maybe this belongs one level down who knows
-
-apply plugin: 'java'
-
-test {
-    testLogging {
-        // set options for log level LIFECYCLE
-        events "failed"
-        exceptionFormat "short"
-
-        // set options for log level DEBUG
-        debug {
-            events "started", "skipped", "failed"
-            exceptionFormat "full"
-        }
-
-        // remove standard output/error logging from --info builds
-        // by assigning only 'failed' and 'skipped' events
-        info.events = ["failed", "skipped"]
-        showStandardStreams = true
-    }
+task clean(type: Delete) {
+    delete rootProject.buildDir
 }
