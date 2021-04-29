@@ -155,7 +155,7 @@ public class DnsPacketProxy {
             return;
         }
 
-        UdpPacket parsedUdp = null;
+        UdpPacket parsedUdp;
         Packet udpPayload;
 
         Packet payload = parsedPacket.getPayload();

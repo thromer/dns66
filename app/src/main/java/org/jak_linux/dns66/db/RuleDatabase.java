@@ -184,6 +184,11 @@ public class RuleDatabase {
         return rules.get().get(host);
     }
 
+    /**
+     * Check if any hosts are blocked or mapped.
+     *
+     * @return true if any hosts are blocked or mapped, false otherwise.
+     */
     boolean isEmpty() {
         return rules.get().isEmpty();
     }
